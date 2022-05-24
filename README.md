@@ -1,64 +1,92 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400"></a></p>
+# Seja bem-vindo(a)
 
-<p align="center">
-<a href="https://travis-ci.org/laravel/framework"><img src="https://travis-ci.org/laravel/framework.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+## Aqui nesta breve documentação veremos como Instalar  e configura esté projeto, Alem disso como foi desenvolvido o raciocínio. 
 
-## About Laravel
+## Requisitos
+- PHP ^7.3
+- Laravel
+- Composer
+- MySQL
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 01 Instalação
+Após extrair, basta você entrar na pasta raiz do projeto e rodar no seu terminal o comando:
+**composer install** 
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Lembre-se de parametrizar seu banco de dados conforme o arquivo **.env** 
 
-## Learning Laravel
+```shell
+ DB_CONNECTION=mysql
+ DB_HOST=127.0.0.1
+ DB_PORT=3306
+ DB_DATABASE=banco
+ DB_USERNAME=root
+ DB_PASSWORD=
+```
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+Depois de instalar as dependências e parametrizar seu banco vamos rodar o comando para as migrations:
+**php artisan migrate**
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains over 2000 video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+**Pronto seu projeto está devidamente instalado e parametrizado.**
 
-## Laravel Sponsors
+## 02 Projeto (IPORTO) 
+obedecendo como foi especificado para o teste foi criado dois **command**, um para salva uma criptomoeda especifica no banco de dados e outra para verificar seu preço.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the Laravel [Patreon page](https://patreon.com/taylorotwell).
+-saveBidPriceOnDataBase - **Salvar no banco**
 
-### Premium Partners
+-checkAvgBigPrice - **Verificar o preço**
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Cubet Techno Labs](https://cubettech.com)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[Many](https://www.many.co.uk)**
-- **[Webdock, Fast VPS Hosting](https://www.webdock.io/en)**
-- **[DevSquad](https://devsquad.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[OP.GG](https://op.gg)**
-- **[WebReinvent](https://webreinvent.com/?utm_source=laravel&utm_medium=github&utm_campaign=patreon-sponsors)**
-- **[Lendio](https://lendio.com)**
+Foi criado um model para manipularmos nossos dados, e os dois commands já mencionados. Tudo isso usando a interface da linha de comando **artisan**.
 
-## Contributing
+não achei necessario a criação de um controller, pois pela minha concepção apenas o command já entregaria a solução desejada. 
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Lógica - saveBidPriceOnDataBase
 
-## Code of Conduct
+$symbol = $this->argument('symbol');
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```php
 
-## Security Vulnerabilities
+  $json = Http::get('https://testnet.binancefuture.com/fapi/v1/ticker/price?symbol='.$symbol)->json();
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+  Persisting::Create([
+        'symbol' => $json['symbol'],
+        'bidPrice' => $json['price'],
+  ]);
+```
 
-## License
+Para obter o resultado desejado eu usei o **http::get** para retorna o array da **API**, passando um parâmetro, creio que havia outras maneiras de como passa esté parâmetro porém não conseguir realizar. Logos após receber o json eu executo o create para salvar no banco de dados.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## Lógica - checkAvgBigPrice
+
+
+```php
+
+ //Obtêm a média das ultimas 100 entradas da moeda específica
+ $bidAvgPrice = Persisting::where('symbol', $symbol)
+ ->orderBy('symbol', 'ASC')
+ ->limit(100)->pluck('bidPrice')->avg();
+
+ //Obtêm a ultima entrada da moeda específica
+ $last = Persisting::select('bidPrice')
+         ->orderBy('id', 'DESC')
+         ->first();
+
+ //Obtêm a porcentagem do preço medio
+ $result = $bidAvgPrice * (0.5 / 100);
+
+ //retorna a mensagem coformer o valo
+ if ($last['bidPrice'] < $result) {
+     echo "O preço da ultima entrada da moeda {$symbol} está 0.5% menor que o preçmédio";
+ }else{
+     echo "O preço da ultima entrada da moeda {$symbol} não está 0.5% menor que preço médio";
+ }
+
+```
+
+Nesta rotina eu obtive a média  das ultimas 100 entradas obtive a ultima entrada, isolei o valor da porcentagem do média e coloquei usei na condição para retorna a mensagem conforme estabelecida no teste.
+
+## Considerações
+Levei um tempo consideravel para realizar está tarefa pois nunca tinha criado **commands** antes. Outro fato que me reteve bastante tempo foi obter a mádia dos ultimos cem, fui para um caminho mais dificil e depois percebi que era mais fácil com tudo foi uma experiência gratificante e de muito aprendizado. O laravel tem me cativado cade linha de código a mais.
+
+(IPORTO) Obrigado por está oportunidade e tempo. 
+

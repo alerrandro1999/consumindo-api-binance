@@ -76,7 +76,7 @@ Para obter o resultado desejado eu usei o **http::get** para retorna o array da 
 
  //retorna a mensagem coformer o valo
  if ($last['bidPrice'] < $result) {
-     echo "O preço da ultima entrada da moeda {$symbol} está 0.5% menor que o preçmédio";
+     echo "O preço da ultima entrada da moeda {$symbol} está 0.5% menor que o preço médio";
  }else{
      echo "O preço da ultima entrada da moeda {$symbol} não está 0.5% menor que preço médio";
  }
